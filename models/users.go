@@ -17,4 +17,7 @@ type User struct {
 
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
+
+	CurrentOtp             *string    `db:"current_otp" json:"current_otp"`
+	CurrentOtpValidityTime *time.Time `db:"current_otp_validity_time" json:"current_otp_validity_time"`
 }

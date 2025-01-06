@@ -13,5 +13,5 @@ sql:
       emit_result_struct_pointers: true
       emit_empty_slices: true
   database:
-    uri: "postgres://frcc:frcc@localhost/frcc?sslmode=disable"
+    uri: "postgres://frcc:123@localhost/frcc?sslmode=disable"
 

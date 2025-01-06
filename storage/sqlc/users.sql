@@ -8,3 +8,11 @@ SELECT *
 FROM users
 WHERE email = $1 OR phone = $2;
 
+-- name: SetCurrentOtp :exec
+UPDATE users
+SET 
+  current_otp = $1,
+  current_otp_validity_time = $2
+WHERE
+  email = $3
+;

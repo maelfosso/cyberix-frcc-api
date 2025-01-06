@@ -23,7 +23,8 @@ func (s *Server) setupRoutes() {
 
 		r.Route("/auth", func(r chi.Router) {
 			appHandler.Register(r, s.database.Storage, s.queue)
-			appHandler.Login(r)
+			appHandler.Login(r, s.database.Storage, s.queue)
+			appHandler.Otp(r, s.database.Storage)
 		})
 
 	})
