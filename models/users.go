@@ -13,7 +13,8 @@ type User struct {
 	Phone        string `db:"phone" json:"phone"`
 	Organization string `db:"organization" json:"organization"`
 
-	Token string `db:"token" json:"token"`
+	ConfirmationToken string `db:"confirmation_token" json:"confirmation_token"`
+	ConfirmedAccount  bool   `db:"confirmed_account" json:"confirmed_account"`
 
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`

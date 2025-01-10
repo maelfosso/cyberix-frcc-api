@@ -62,3 +62,25 @@ func SendOtpEmail(r registry, es iOtpEmailSender) {
 		return nil
 	})
 }
+
+type iWelcomeEmailSender interface {
+	SendWelcomeEmail(ctx context.Context, to models.Email) error
+}
+
+func SendWelcomeEmail(r registry, es iWelcomeEmailSender) {
+	r.Register("welcome_email", func(ctx context.Context, m models.Message) error {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		to, ok := m["email"]
+		if !ok {
+			return errors.New("no email address in message")
+		}
+
+		if err := es.SendWelcomeEmail(ctx, models.Email(to)); err != nil {
+			return fmt.Errorf("error sending verification email: %w", err)
+		}
+
+		return nil
+	})
+}

@@ -80,7 +80,7 @@ func (appHandler *AppHandler) Register(mux chi.Router, db iRegister, q iQueue) {
 			Phone:        input.Phone,
 			Organization: input.Organization,
 
-			Token: token,
+			ConfirmationToken: token,
 		})
 		if err != nil {
 			http.Error(w, fmt.Errorf("error creating the new users: %w", err).Error(), http.StatusBadRequest)
@@ -88,17 +88,57 @@ func (appHandler *AppHandler) Register(mux chi.Router, db iRegister, q iQueue) {
 		}
 
 		// send email
-		// err = q.Send(ctx, models.Message{
-		// 	"job":   "verification_email",
-		// 	"email": input.Email,
-		// 	"token": token,
-		// })
-		// if err != nil {
-		// 	http.Error(w, fmt.Errorf("error adding mail into queue: %v", err).Error(), http.StatusBadRequest)
-		// 	return
-		// }
+		err = q.Send(ctx, models.Message{
+			"job":   "verification_email",
+			"email": input.Email,
+			"token": token,
+		})
+		if err != nil {
+			http.Error(w, fmt.Errorf("error adding mail into queue: %v", err).Error(), http.StatusBadRequest)
+			return
+		}
 
 		// return ok
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		if err := json.NewEncoder(w).Encode(true); err != nil {
+			http.Error(w, "error encoding the result", http.StatusBadRequest)
+			return
+		}
+	})
+}
+
+type iRegisterConfirm interface {
+	ConfirmRegister(ctx context.Context, token string) (*models.User, error)
+}
+
+func (appHandler *AppHandler) RegisterConfirm(mux chi.Router, db iRegisterConfirm, q iQueue) {
+	mux.Post("/register/confirm", func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		token := r.FormValue("token")
+
+		user, err := db.ConfirmRegister(ctx, token)
+		if err != nil {
+			http.Error(w, "error saving email address confirmation", http.StatusBadRequest)
+			return
+		}
+		if user == nil {
+			http.Error(w, "error not user associated to this token", http.StatusBadRequest)
+			return
+		}
+
+		err = q.Send(
+			ctx,
+			models.Message{
+				"job":   "welcome_email",
+				"email": user.Email,
+			},
+		)
+		if err != nil {
+			http.Error(w, "error saving email address confirmation", http.StatusBadRequest)
+			return
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		if err := json.NewEncoder(w).Encode(true); err != nil {
@@ -141,6 +181,11 @@ func (appHandler *AppHandler) Login(mux chi.Router, db iLoginer, q iQueue) {
 		// if user exists, stop and return error
 		if user == nil {
 			http.Error(w, fmt.Errorf("error user with email/phone does not exists").Error(), http.StatusBadRequest)
+			return
+		}
+
+		if !user.ConfirmedAccount {
+			http.Error(w, fmt.Errorf("sorry kindly confirmed your account").Error(), http.StatusBadRequest)
 			return
 		}
 

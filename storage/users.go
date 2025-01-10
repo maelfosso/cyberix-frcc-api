@@ -3,25 +3,63 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 
 	"cyberix.fr/frcc/models"
 )
 
+const confirmRegister = `-- name: ConfirmRegister :one
+UPDATE users
+SET
+  confirmed_account = TRUE
+WHERE
+  confirmation_token = $1
+RETURNING id, first_name, last_name, email, quality, phone, organization, created_at, updated_at, confirmation_token, current_otp, current_otp_validity_time, confirmed_account
+`
+
+func (q *Queries) ConfirmRegister(ctx context.Context, confirmationToken string) (*models.User, error) {
+	row := q.db.QueryRowContext(ctx, confirmRegister, confirmationToken)
+	var i models.User
+	err := row.Scan(
+		&i.ID,
+		&i.FirstName,
+		&i.LastName,
+		&i.Email,
+		&i.Quality,
+		&i.Phone,
+		&i.Organization,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ConfirmationToken,
+		&i.CurrentOtp,
+		&i.CurrentOtpValidityTime,
+		&i.ConfirmedAccount,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &i, err
+}
+
 const createUser = `-- name: CreateUser :one
-INSERT INTO users(first_name, last_name, email, quality, phone, organization, token)
+INSERT INTO users(first_name, last_name, email, quality, phone, organization, confirmation_token)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, first_name, last_name, email, quality, phone, organization, created_at, updated_at, token, current_otp, current_otp_validity_time
+RETURNING id, first_name, last_name, email, quality, phone, organization, created_at, updated_at, confirmation_token, current_otp, current_otp_validity_time, confirmed_account
 `
 
 type CreateUserParams struct {
-	FirstName    string `db:"first_name" json:"first_name"`
-	LastName     string `db:"last_name" json:"last_name"`
-	Email        string `db:"email" json:"email"`
-	Quality      string `db:"quality" json:"quality"`
-	Phone        string `db:"phone" json:"phone"`
-	Organization string `db:"organization" json:"organization"`
-	Token        string `db:"token" json:"token"`
+	FirstName         string `db:"first_name" json:"first_name"`
+	LastName          string `db:"last_name" json:"last_name"`
+	Email             string `db:"email" json:"email"`
+	Quality           string `db:"quality" json:"quality"`
+	Phone             string `db:"phone" json:"phone"`
+	Organization      string `db:"organization" json:"organization"`
+	ConfirmationToken string `db:"confirmation_token" json:"confirmation_token"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (*models.User, error) {
@@ -32,7 +70,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (*models
 		arg.Quality,
 		arg.Phone,
 		arg.Organization,
-		arg.Token,
+		arg.ConfirmationToken,
 	)
 	var i models.User
 	err := row.Scan(
@@ -45,15 +83,16 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (*models
 		&i.Organization,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.Token,
+		&i.ConfirmationToken,
 		&i.CurrentOtp,
 		&i.CurrentOtpValidityTime,
+		&i.ConfirmedAccount,
 	)
 	return &i, err
 }
 
 const getUserByEmailOrPhone = `-- name: GetUserByEmailOrPhone :one
-SELECT id, first_name, last_name, email, quality, phone, organization, created_at, updated_at, token, current_otp, current_otp_validity_time
+SELECT id, first_name, last_name, email, quality, phone, organization, created_at, updated_at, confirmation_token, current_otp, current_otp_validity_time, confirmed_account
 FROM users
 WHERE email = $1 OR phone = $2
 `
@@ -76,9 +115,10 @@ func (q *Queries) GetUserByEmailOrPhone(ctx context.Context, arg GetUserByEmailO
 		&i.Organization,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.Token,
+		&i.ConfirmationToken,
 		&i.CurrentOtp,
 		&i.CurrentOtpValidityTime,
+		&i.ConfirmedAccount,
 	)
 
 	if err != nil && err == sql.ErrNoRows {
