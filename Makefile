@@ -1,4 +1,5 @@
 POSTGRESQL_URL='postgres://frcc:123@localhost:5432/frcc?sslmode=disable'
+ENV_FILE ?= .env.local
 
 .PHONY: build cover start test test-integration
 
@@ -9,7 +10,8 @@ cover:
 	go tool cover -html=cover.out
 
 start:
-	go run cmd/server/*.go
+	@echo "Using env file: $(ENV_FILE)"
+	go run cmd/server/*.go -env $(ENV_FILE)
 
 migrate-up:
 	migrate -database ${POSTGRESQL_URL} -path storage/migrations up

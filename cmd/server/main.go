@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -24,11 +26,34 @@ import (
 
 var release string
 
-func init() {
-	godotenv.Load()
+// func init() {
+// 	godotenv.Load()
+// }
+
+func loadEnvFile(filename string) error {
+	err := godotenv.Load(filename)
+	if err != nil {
+		return fmt.Errorf("error loading .env file: %w", err)
+	}
+	return nil
 }
 
 func main() {
+	envFile := flag.String("env", ".env.local", "Path to the .env file")
+	flag.Parse()
+
+	filename := *envFile
+	if _, err := os.Stat(filename); err == nil {
+		err := loadEnvFile(filename)
+		if err != nil {
+			log.Fatal(err)
+		}
+	} else if os.IsNotExist(err) {
+		fmt.Println("No .env file found, loading from the system's environment")
+	} else {
+		log.Fatal(fmt.Errorf("error checking if .env file exists: %w", err))
+	}
+
 	os.Exit(start())
 }
 

@@ -160,17 +160,16 @@ func (appHandler *AppHandler) Login(mux chi.Router, db iLoginer, q iQueue) {
 		}
 
 		// send email
-		// err = q.Send(ctx, models.Message{
-		// 	"job":   "otp_email",
-		// 	"email": input.Email,
-		// 	"otp": otp,
-		// })
-		// if err != nil {
-		// 	http.Error(w, fmt.Errorf("error adding mail into queue: %v", err).Error(), http.StatusBadRequest)
-		// 	return
-		// }
+		err = q.Send(ctx, models.Message{
+			"job":   "otp_email",
+			"email": input.Email,
+			"otp":   otp,
+		})
+		if err != nil {
+			http.Error(w, fmt.Errorf("error adding mail into queue: %v", err).Error(), http.StatusBadRequest)
+			return
+		}
 
-		// return ok
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		if err := json.NewEncoder(w).Encode(true); err != nil {

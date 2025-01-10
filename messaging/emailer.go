@@ -74,6 +74,22 @@ func (e *Emailer) SendVerificationEmail(ctx context.Context, to models.Email, to
 	})
 }
 
+func (e *Emailer) SendOtpEmail(ctx context.Context, to models.Email, otp string) error {
+	keywords := map[string]string{
+		"otp":   otp,
+		"email": to.String(),
+	}
+
+	return e.send(ctx, requestBody{
+		MessageStream: transactionalMessageStream,
+		From:          e.transactionalFrom,
+		To:            to.String(),
+		Subject:       "OTP to login to FRCC APP",
+		HtmlBody:      getEmail("otp_email.html", keywords),
+		TextBody:      getEmail("otp_email.txt", keywords),
+	})
+}
+
 type requestBody struct {
 	MessageStream string
 	From          nameAndEmail

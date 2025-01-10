@@ -1,5 +1,7 @@
-Use the following OTP to complete your login/registration. This OTP is valid for a short period of time
+This email is for {{email}}
+Use the following OTP to complete your login/registration. 
+This OTP is valid for a short period of time, 2 minutes and half.
 
-{{.OTP}}
+{{otp}}
 
 Forum Regional de Cybersecurité de la CEMAC
