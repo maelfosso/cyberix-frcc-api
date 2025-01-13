@@ -26,16 +26,21 @@ import (
 
 var release string
 
-// func init() {
-// 	godotenv.Load()
-// }
-
 func loadEnvFile(filename string) error {
-	err := godotenv.Load(filename)
-	if err != nil {
-		return fmt.Errorf("error loading .env file: %w", err)
+	if _, err := os.Stat(filename); err == nil {
+		err := godotenv.Load(filename)
+		if err != nil {
+			return fmt.Errorf("error loading .env file: %w", err)
+		}
+
+		log.Println("Loaded env from file", filename)
+		return nil
+	} else if os.IsNotExist(err) {
+		log.Println("No .env file found, loading from the system's environment")
+		return nil
+	} else {
+		return fmt.Errorf("error checking if .env file exists: %w", err)
 	}
-	return nil
 }
 
 func main() {
@@ -43,15 +48,10 @@ func main() {
 	flag.Parse()
 
 	filename := *envFile
-	if _, err := os.Stat(filename); err == nil {
-		err := loadEnvFile(filename)
-		if err != nil {
+	if filename != "" { // Only load file if -env flag is given
+		if err := loadEnvFile(filename); err != nil {
 			log.Fatal(err)
 		}
-	} else if os.IsNotExist(err) {
-		fmt.Println("No .env file found, loading from the system's environment")
-	} else {
-		log.Fatal(fmt.Errorf("error checking if .env file exists: %w", err))
 	}
 
 	os.Exit(start())
