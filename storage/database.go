@@ -57,7 +57,7 @@ func NewDatabase(opts NewDatabaseOptions) *Database {
 
 func (d *Database) dsn() string {
 	return fmt.Sprintf(
-		"host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		"host=%s port=%d user=%s password=%s dbname=%s", // sslmode=disable",
 		d.host, d.port, d.user, d.password, d.name,
 	)
 }
