@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -56,9 +57,15 @@ func NewDatabase(opts NewDatabaseOptions) *Database {
 }
 
 func (d *Database) dsn() string {
+	appEnv := os.Getenv("APP_ENV")
+	ssl := ""
+	if appEnv == "" || appEnv == "local" || appEnv == "development" {
+		ssl = "sslmode=disable"
+	}
+
 	return fmt.Sprintf(
-		"host=%s port=%d user=%s password=%s dbname=%s", // sslmode=disable",
-		d.host, d.port, d.user, d.password, d.name,
+		"host=%s port=%d user=%s password=%s dbname=%s %s", // sslmode=disable",
+		d.host, d.port, d.user, d.password, d.name, ssl,
 	)
 }
 

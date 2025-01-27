@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -61,7 +62,7 @@ func NewEmailer(opts NewEmailerOptions) *Emailer {
 func (e *Emailer) SendVerificationEmail(ctx context.Context, to models.Email, token string) error {
 	keywords := map[string]string{
 		"base_url":   e.baseURL,
-		"action_url": e.baseURL + "/verification?token=" + token,
+		"action_url": e.baseURL + "/register/confirm/" + token,
 	}
 
 	return e.send(ctx, requestBody{
@@ -74,17 +75,19 @@ func (e *Emailer) SendVerificationEmail(ctx context.Context, to models.Email, to
 	})
 }
 
-func (e *Emailer) SendOtpEmail(ctx context.Context, to models.Email, otp string) error {
+func (e *Emailer) SendOtpEmail(ctx context.Context, to models.Email, name, otp string) error {
 	keywords := map[string]string{
-		"otp":   otp,
-		"email": to.String(),
+		"otp":     otp,
+		"email":   to.String(),
+		"name":    name,
+		"website": os.Getenv("WEBSITE"),
 	}
 
 	return e.send(ctx, requestBody{
 		MessageStream: transactionalMessageStream,
 		From:          e.transactionalFrom,
 		To:            to.String(),
-		Subject:       "OTP to login to FRCC APP",
+		Subject:       "Votre code OTP pour l'enregistrement au Forum Régional sur la Sécurité",
 		HtmlBody:      getEmail("otp_email.html", keywords),
 		TextBody:      getEmail("otp_email.txt", keywords),
 	})
@@ -97,6 +100,23 @@ type requestBody struct {
 	Subject       string
 	HtmlBody      string
 	TextBody      string
+}
+
+func (e *Emailer) SendWelcomeEmail(ctx context.Context, to models.Email, name string) error {
+	keywords := map[string]string{
+		"email":   to.String(),
+		"name":    name,
+		"website": os.Getenv("WEBSITE"),
+	}
+
+	return e.send(ctx, requestBody{
+		MessageStream: transactionalMessageStream,
+		From:          e.transactionalFrom,
+		To:            to.String(),
+		Subject:       "Merci pour votre enregistrement au Forum Régional sur la Sécurité",
+		HtmlBody:      getEmail("confirmation_email.html", keywords),
+		TextBody:      getEmail("confirmation_email.txt", keywords),
+	})
 }
 
 func (e *Emailer) send(ctx context.Context, body requestBody) error {

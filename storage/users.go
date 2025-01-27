@@ -14,7 +14,7 @@ UPDATE users
 SET
   confirmed_account = TRUE
 WHERE
-  confirmation_token = $1
+email = $1
 RETURNING id, first_name, last_name, email, quality, phone, organization, created_at, updated_at, confirmation_token, current_otp, current_otp_validity_time, confirmed_account
 `
 
@@ -47,8 +47,8 @@ func (q *Queries) ConfirmRegister(ctx context.Context, confirmationToken string)
 }
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users(first_name, last_name, email, quality, phone, organization, confirmation_token)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
+INSERT INTO users(first_name, last_name, email, quality, phone, organization, confirmation_token, confirmed_account)
+VALUES ($1, $2, $3, $4, $5, $6, $7, true)
 RETURNING id, first_name, last_name, email, quality, phone, organization, created_at, updated_at, confirmation_token, current_otp, current_otp_validity_time, confirmed_account
 `
 

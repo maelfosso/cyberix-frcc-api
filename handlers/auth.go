@@ -20,6 +20,7 @@ import (
 type iRegister interface {
 	GetUserByEmailOrPhone(ctx context.Context, arg storage.GetUserByEmailOrPhoneParams) (*models.User, error)
 	CreateUser(ctx context.Context, arg storage.CreateUserParams) (*models.User, error)
+	SetCurrentOtp(ctx context.Context, arg storage.SetCurrentOtpParams) error
 }
 
 type iQueue interface {
@@ -72,7 +73,7 @@ func (appHandler *AppHandler) Register(mux chi.Router, db iRegister, q iQueue) {
 		}
 
 		// continue the registration
-		_, err = db.CreateUser(ctx, storage.CreateUserParams{
+		user, err = db.CreateUser(ctx, storage.CreateUserParams{
 			FirstName:    input.FirstName,
 			LastName:     input.LastName,
 			Email:        input.Email,
@@ -87,11 +88,27 @@ func (appHandler *AppHandler) Register(mux chi.Router, db iRegister, q iQueue) {
 			return
 		}
 
+		otp := createOtp()
+
+		duration := 2*time.Minute + 30*time.Second
+		otpValidity := time.Now().UTC().Add(duration)
+
+		err = db.SetCurrentOtp(ctx, storage.SetCurrentOtpParams{
+			CurrentOtp:             otp,
+			CurrentOtpValidityTime: otpValidity,
+			Email:                  input.Email,
+		})
+		if err != nil {
+			http.Error(w, fmt.Errorf("error updating current otp: %v", err).Error(), http.StatusBadRequest)
+			return
+		}
+
 		// send email
 		err = q.Send(ctx, models.Message{
-			"job":   "verification_email",
+			"job":   "otp_email",
 			"email": input.Email,
-			"token": token,
+			"name":  fmt.Sprintf("%s %s", user.FirstName, user.LastName),
+			"otp":   otp,
 		})
 		if err != nil {
 			http.Error(w, fmt.Errorf("error adding mail into queue: %v", err).Error(), http.StatusBadRequest)
@@ -110,28 +127,65 @@ func (appHandler *AppHandler) Register(mux chi.Router, db iRegister, q iQueue) {
 
 type iRegisterConfirm interface {
 	ConfirmRegister(ctx context.Context, token string) (*models.User, error)
+	GetUserByEmailOrPhone(ctx context.Context, arg storage.GetUserByEmailOrPhoneParams) (*models.User, error)
 }
 
 func (appHandler *AppHandler) RegisterConfirm(mux chi.Router, db iRegisterConfirm, q iQueue) {
 	mux.Post("/register/confirm", func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		token := r.FormValue("token")
 
-		user, err := db.ConfirmRegister(ctx, token)
+		var input OtpRequest
+		httpStatus, err := appHandler.ParsingRequestBody(w, r, &input)
 		if err != nil {
+			http.Error(w, err.Error(), httpStatus)
+			return
+		}
+
+		// check if user already exists
+		user, err := db.GetUserByEmailOrPhone(ctx, storage.GetUserByEmailOrPhoneParams{
+			Email: input.Email,
+			Phone: input.Email,
+		})
+		if err != nil {
+			http.Error(w, fmt.Errorf("error checking if user already exists: %v", err).Error(), http.StatusBadRequest)
+			return
+		}
+
+		// if user exists, stop and return error
+		if user == nil {
+			http.Error(w, fmt.Errorf("error user with email/phone does not exists").Error(), http.StatusBadRequest)
+			return
+		}
+
+		if !time.Now().UTC().Before(*user.CurrentOtpValidityTime) {
+			http.Error(w, fmt.Errorf("error otp has expired").Error(), http.StatusBadRequest)
+			return
+		}
+
+		if input.Otp != *user.CurrentOtp {
+			http.Error(w, fmt.Errorf("error wrong otp").Error(), http.StatusBadRequest)
+			return
+		}
+
+		// token := r.FormValue("token")
+
+		_, err = db.ConfirmRegister(ctx, user.Email)
+		if err != nil {
+			log.Println("confirm-register-error", err)
 			http.Error(w, "error saving email address confirmation", http.StatusBadRequest)
 			return
 		}
-		if user == nil {
-			http.Error(w, "error not user associated to this token", http.StatusBadRequest)
-			return
-		}
+		// if user == nil {
+		// 	http.Error(w, "error not user associated to this token", http.StatusBadRequest)
+		// 	return
+		// }
 
 		err = q.Send(
 			ctx,
 			models.Message{
 				"job":   "welcome_email",
 				"email": user.Email,
+				"name":  fmt.Sprintf("%s %s", user.FirstName, user.LastName),
 			},
 		)
 		if err != nil {

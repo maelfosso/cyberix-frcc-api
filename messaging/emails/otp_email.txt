@@ -1,7 +1,13 @@
-This email is for {{email}}
-Use the following OTP to complete your login/registration. 
-This OTP is valid for a short period of time, 2 minutes and half.
+Bonjour {{name}},
+
+Merci pour votre inscription au Forum Régional sur la Sécurité des Systèmes et Moyens de Paiement, qui se tiendra du 5 au 7 mars 2025.
+
+Pour confirmer votre enregistrement, veuillez utiliser le code OTP suivant :
 
 {{otp}}
 
-Forum Regional de Cybersecurité de la CEMAC
+Rendez-vous sur le site officiel de l'événement ({{website}}) pour plus d'informations.
+
+Au plaisir de vous accueillir lors de ce forum unique,
+
+Le comité d'organisation

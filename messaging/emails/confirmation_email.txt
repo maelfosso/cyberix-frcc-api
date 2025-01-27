@@ -1,0 +1,16 @@
+Objet : Confirmation de votre enregistrement au Forum Régional sur la Sécurité
+
+Bonjour {{name}},
+
+Nous avons le plaisir de vous confirmer votre enregistrement au Forum Régional sur la Sécurité des Systèmes et Moyens de Paiement, qui se déroulera du 5 au 7 mars 2025.
+
+Votre participation est désormais enregistrée, et nous sommes ravis de vous compter parmi nous. Pour découvrir le programme détaillé, les intervenants et toutes les informations pratiques, nous vous invitons à visiter notre site officiel : {{website}}.
+
+N'hésitez pas à consulter notre site régulièrement pour des mises à jour et des annonces concernant l'événement.
+
+Nous avons hâte de vous accueillir et de partager avec vous des moments enrichissants lors de ce forum.
+
+Cordialement,
+
+Le comité d'organisation
+

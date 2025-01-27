@@ -37,7 +37,7 @@ func SendVerificationEmail(r registry, es iVerificationEmailSender) {
 }
 
 type iOtpEmailSender interface {
-	SendOtpEmail(ctx context.Context, to models.Email, otp string) error
+	SendOtpEmail(ctx context.Context, to models.Email, name, otp string) error
 }
 
 func SendOtpEmail(r registry, es iOtpEmailSender) {
@@ -50,12 +50,17 @@ func SendOtpEmail(r registry, es iOtpEmailSender) {
 			return errors.New("no email address in message")
 		}
 
+		name, ok := m["name"]
+		if !ok {
+			return errors.New("no name in message")
+		}
+
 		otp, ok := m["otp"]
 		if !ok {
 			return errors.New("no otp in message")
 		}
 
-		if err := es.SendOtpEmail(ctx, models.Email(to), otp); err != nil {
+		if err := es.SendOtpEmail(ctx, models.Email(to), name, otp); err != nil {
 			return fmt.Errorf("error sending verification email: %w", err)
 		}
 
@@ -64,7 +69,7 @@ func SendOtpEmail(r registry, es iOtpEmailSender) {
 }
 
 type iWelcomeEmailSender interface {
-	SendWelcomeEmail(ctx context.Context, to models.Email) error
+	SendWelcomeEmail(ctx context.Context, to models.Email, name string) error
 }
 
 func SendWelcomeEmail(r registry, es iWelcomeEmailSender) {
@@ -77,7 +82,12 @@ func SendWelcomeEmail(r registry, es iWelcomeEmailSender) {
 			return errors.New("no email address in message")
 		}
 
-		if err := es.SendWelcomeEmail(ctx, models.Email(to)); err != nil {
+		name, ok := m["name"]
+		if !ok {
+			return errors.New("no name in message")
+		}
+
+		if err := es.SendWelcomeEmail(ctx, models.Email(to), name); err != nil {
 			return fmt.Errorf("error sending verification email: %w", err)
 		}
 
